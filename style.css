@@ -1673,3 +1673,511 @@ h1 {
     }
 
 }
+
+/* =========================
+   NAVIGAZIONE SETTIMANA
+========================= */
+
+.week-navigation {
+    width: min(520px, 100%);
+    margin: 0 auto 28px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+}
+
+.week-arrow {
+    width: 40px;
+    height: 40px;
+
+    border: 1px solid #eee5e2;
+    border-radius: 50%;
+
+    background: #ffffff;
+    color: #9a918c;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    box-shadow: 0 5px 16px rgba(96, 85, 74, 0.04);
+
+    transition:
+        transform 0.2s ease,
+        color 0.2s ease,
+        background-color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.week-arrow:hover {
+    color: #c88f98;
+    background-color: #fff8f8;
+    border-color: #f0d6d9;
+    transform: scale(1.07);
+}
+
+.week-arrow:active {
+    transform: scale(0.96);
+}
+
+.week-current {
+    min-width: 150px;
+    text-align: center;
+}
+
+.week-label {
+    display: block;
+
+    margin-bottom: 3px;
+
+    color: #d99ca5;
+
+    font-family: "DM Mono", monospace;
+    font-size: 8px;
+    font-weight: 500;
+
+    letter-spacing: 1.7px;
+    text-transform: uppercase;
+}
+
+.week-current strong {
+    color: #4e4945;
+
+    font-family: "DM Mono", monospace;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.week-year {
+    margin-left: 5px;
+
+    color: #aaa09a;
+
+    font-family: "DM Mono", monospace;
+    font-size: 9px;
+}
+
+
+/* =========================
+   TASTO STORICO
+========================= */
+
+.week-history-section {
+    display: flex;
+    justify-content: center;
+
+    margin-top: -10px;
+    margin-bottom: 28px;
+}
+
+.history-button {
+    padding: 5px 10px;
+
+    border: 0;
+    background: transparent;
+
+    color: #aaa09a;
+
+    font-family: "DM Mono", monospace;
+    font-size: 8px;
+    font-weight: 400;
+
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+
+    cursor: pointer;
+
+    transition:
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.history-button i {
+    margin-right: 6px;
+
+    font-size: 9px;
+}
+
+.history-button:hover {
+    color: #c88f98;
+    transform: translateY(-1px);
+}
+
+
+/* =========================
+   MODALE STORICO
+========================= */
+
+.history-modal {
+    width: min(430px, 100%);
+}
+
+.history-title {
+    margin-bottom: 24px !important;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 3px;
+}
+
+.history-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: #eadfdd;
+    border-radius: 10px;
+}
+
+.history-empty {
+    padding: 28px 10px;
+
+    color: #aaa09a;
+
+    font-family: "DM Mono", monospace;
+    font-size: 9px;
+
+    line-height: 1.7;
+    text-align: center;
+}
+
+.history-item {
+    width: 100%;
+
+    padding: 14px 16px;
+
+    border: 1px solid #eee7e4;
+    border-radius: 16px;
+
+    background-color: #fcfaf9;
+
+    color: #57514d;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    font-family: "DM Mono", monospace;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.history-item:hover {
+    background-color: #fff8f8;
+    border-color: #efc8cd;
+    transform: translateY(-1px);
+
+    box-shadow: 0 6px 18px rgba(96, 85, 74, 0.04);
+}
+
+.history-item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.history-item-week {
+    color: #57514d;
+
+    font-size: 10px;
+    font-weight: 400;
+}
+
+.history-item-year {
+    color: #aaa09a;
+
+    font-size: 8px;
+}
+
+.history-item-count {
+    color: #c48e96;
+
+    font-size: 7px;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 600px) {
+
+    .week-navigation {
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    .week-arrow {
+        width: 36px;
+        height: 36px;
+
+        font-size: 11px;
+    }
+
+    .week-current {
+        min-width: 130px;
+    }
+
+    .week-current strong {
+        font-size: 17px;
+    }
+
+    .week-history-section {
+        margin-top: -5px;
+        margin-bottom: 24px;
+    }
+
+    .history-modal {
+        width: 100%;
+    }
+
+    .history-item {
+        padding: 13px 14px;
+    }
+}
+
+/* =========================
+   GIORNO + DATA
+========================= */
+
+.day-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 7px;
+}
+
+.day-name {
+    display: inline-block;
+}
+
+.day-number {
+    color: #b3aaa5;
+
+    font-size: 9px;
+    font-weight: 400;
+
+    letter-spacing: 0.4px;
+}
+
+
+/* =========================
+   STORICO IN FONDO
+========================= */
+
+.week-history-section {
+    display: flex;
+    justify-content: center;
+
+    margin-top: 45px;
+    margin-bottom: 0;
+}
+
+.history-button {
+    padding: 7px 12px;
+
+    border: 0;
+    background: transparent;
+
+    color: #aaa09a;
+
+    font-family: "DM Mono", monospace;
+
+    font-size: 8px;
+    font-weight: 400;
+
+    letter-spacing: 1.2px;
+
+    text-transform: uppercase;
+
+    cursor: pointer;
+
+    transition:
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.history-button i {
+    margin-right: 6px;
+    font-size: 9px;
+}
+
+.history-button:hover {
+    color: #c88f98;
+    transform: translateY(-1px);
+}
+
+
+/* =========================
+   STORICO MODALE
+========================= */
+
+.history-modal {
+    width: min(430px, 100%);
+}
+
+.history-title {
+    margin-bottom: 5px !important;
+}
+
+.history-subtitle {
+    margin-bottom: 24px;
+
+    color: #aaa09a;
+
+    font-family: "DM Mono", monospace;
+    font-size: 9px;
+
+    text-align: center;
+}
+
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    max-height: 55vh;
+
+    overflow-y: auto;
+
+    padding-right: 3px;
+}
+
+.history-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: #eadfdd;
+    border-radius: 10px;
+}
+
+.history-empty {
+    padding: 28px 10px;
+
+    color: #aaa09a;
+
+    font-size: 9px;
+
+    line-height: 1.7;
+
+    text-align: center;
+}
+
+.history-item {
+    width: 100%;
+
+    padding: 14px 16px;
+
+    border: 1px solid #eee7e4;
+    border-radius: 16px;
+
+    background-color: #fcfaf9;
+
+    color: #57514d;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    font-family: "DM Mono", monospace;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.history-item:hover {
+    background-color: #fff8f8;
+
+    border-color: #efc8cd;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 6px 18px rgba(96, 85, 74, 0.04);
+}
+
+.history-item-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    text-align: left;
+}
+
+.history-item-week {
+    color: #57514d;
+
+    font-size: 10px;
+}
+
+.history-item-year {
+    color: #aaa09a;
+
+    font-size: 8px;
+}
+
+.history-item-count {
+    color: #c48e96;
+
+    font-size: 7px;
+
+    letter-spacing: 0.8px;
+
+    text-transform: uppercase;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 600px) {
+
+    .day-header {
+        gap: 6px;
+    }
+
+    .day-number {
+        font-size: 8px;
+    }
+
+    .week-history-section {
+        margin-top: 35px;
+    }
+
+    .history-item {
+        padding: 13px 14px;
+    }
+}

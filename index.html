@@ -50,6 +50,36 @@
              SETTIMANA
         ========================== -->
 
+            <section class="week-navigation">
+
+    <button
+        type="button"
+        class="week-arrow"
+        id="previousWeek"
+        aria-label="Settimana precedente"
+    >
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
+
+    <div class="week-current">
+        <span class="week-label">SETTIMANA</span>
+
+        <strong id="weekNumber">37</strong>
+
+        <span class="week-year" id="weekYear">2026</span>
+    </div>
+
+    <button
+        type="button"
+        class="week-arrow"
+        id="nextWeek"
+        aria-label="Settimana successiva"
+    >
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>
+
+</section>
+
         <section class="meal-grid">
 
             <!-- LUNEDÌ -->
@@ -211,6 +241,19 @@
         <!-- =========================
              LISTA DELLA SPESA
         ========================== -->
+
+            <section class="week-history-section">
+
+                <button
+                    type="button"
+                    class="history-button"
+                    id="openHistory"
+                >
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    Storico
+                </button>
+
+            </section>
 
         <section class="shopping-list-section">
 
@@ -416,8 +459,48 @@
     </div>
 
 
-    <script src="script.js"></script>
+    <!-- =========================
+     MODAL STORICO
+========================= -->
+
+<div
+    class="modal-overlay"
+    id="historyModal"
+>
+
+    <div class="modal history-modal">
+
+        <button
+            class="modal-close"
+            id="closeHistory"
+            aria-label="Chiudi"
+        >
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <p class="modal-kicker">
+            archivio
+        </p>
+
+        <h2 class="history-title">
+            Storico
+        </h2>
+
+        <p class="history-subtitle">
+            Le tue settimane
+        </p>
+
+        <div
+            class="history-list"
+            id="historyList"
+        ></div>
+
+    </div>
+
+</div>
+
+
+<script src="script.js"></script>
 
 </body>
-
 </html>

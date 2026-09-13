@@ -1,3 +1,24 @@
+const SUPABASE_URL = "https://ferocosprtohzfkartig.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yckr7WnirLVooq5iw3ZFgw_vJHDYE2s";
+
+const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+);
+
+supabaseClient
+    .from("meals")
+    .select("id")
+    .limit(1)
+    .then(({ error }) => {
+        if (error) {
+            console.error("Errore collegamento Supabase:", error);
+        } else {
+            console.log("✅ Supabase collegato correttamente");
+        }
+    });
+
 const meals = document.querySelectorAll(".meal");
 
 const mealModal = document.getElementById("mealModal");

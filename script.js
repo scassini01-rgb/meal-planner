@@ -1,5 +1,6 @@
 const SUPABASE_URL = "https://ferocosprtohzfkartig.supabase.co";
 
+// INCOLLA QUI LA TUA PUBLISHABLE KEY
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_yckr7WnirLVooq5iw3ZFgw_vJHDYE2s";
 
 const supabaseClient = window.supabase.createClient(
@@ -7,17 +8,10 @@ const supabaseClient = window.supabase.createClient(
     SUPABASE_PUBLISHABLE_KEY
 );
 
-supabaseClient
-    .from("meals")
-    .select("id")
-    .limit(1)
-    .then(({ error }) => {
-        if (error) {
-            console.error("Errore collegamento Supabase:", error);
-        } else {
-            console.log("✅ Supabase collegato correttamente");
-        }
-    });
+
+/* =========================================================
+   ELEMENTI DOM
+   ========================================================= */
 
 const meals = document.querySelectorAll(".meal");
 
@@ -53,14 +47,24 @@ const closeHistoryButton = document.getElementById("closeHistory");
 const historyList = document.getElementById("historyList");
 
 
+/* =========================================================
+   STATO
+   ========================================================= */
+
 let currentMeal = null;
 let selectedType = null;
 let currentIngredientMeal = null;
 
+let currentWeekMeals = [];
+let currentShoppingChecked = [];
 
-/* =========================
+let currentUser = null;
+let realtimeChannel = null;
+
+
+/* =========================================================
    COSTANTI
-========================= */
+   ========================================================= */
 
 const DAYS = [
     "lunedi",
@@ -83,13 +87,13 @@ const DAY_NAMES = [
 ];
 
 const CURRENT_WEEK_KEY = "mealPlannerCurrentWeek";
-const HISTORY_KEY = "mealPlannerHistory";
-const MIGRATION_KEY = "mealPlanner-old-data-migrated";
+const OLD_MIGRATION_KEY = "mealPlanner-old-data-migrated";
+const LOCAL_SUPABASE_MIGRATION_KEY = "mealPlanner-supabase-migration-done";
 
 
-/* =========================
+/* =========================================================
    SETTIMANA ISO
-========================= */
+   ========================================================= */
 
 function getISOWeekInfo(date = new Date()) {
     const target = new Date(
@@ -114,9 +118,7 @@ function getISOWeekInfo(date = new Date()) {
 
     const week = Math.ceil(
         (
-            (
-                (target - yearStart) / 86400000
-            ) + 1
+            ((target - yearStart) / 86400000) + 1
         ) / 7
     );
 
@@ -148,16 +150,9 @@ function getWeekStart(year, week) {
 }
 
 
-function getWeeksInYear(year) {
-    return getISOWeekInfo(
-        new Date(year, 11, 28)
-    ).week;
-}
-
-
-/* =========================
+/* =========================================================
    SETTIMANA CORRENTE
-========================= */
+   ========================================================= */
 
 function loadCurrentWeek() {
     const saved = localStorage.getItem(
@@ -198,158 +193,17 @@ function saveCurrentWeek() {
 }
 
 
-/* =========================
-   STORAGE SETTIMANA
-========================= */
-
-function getWeekPrefix() {
-    return `mealPlanner-${currentWeek.year}-week-${currentWeek.week}`;
-}
-
-
-function getMealStorageKey(mealElement) {
-    const day = mealElement.dataset.day;
-    const mealType = mealElement.dataset.meal;
-
-    return `${getWeekPrefix()}-${day}-${mealType}`;
-}
-
-
-function getShoppingStorageKey() {
-    return `${getWeekPrefix()}-shoppingChecked`;
-}
-
-
-/* =========================
-   DATI SETTIMANA
-========================= */
-
-function getWeekMealKeys(year, week) {
-    const keys = [];
-
-    DAYS.forEach((day) => {
-        keys.push(
-            `mealPlanner-${year}-week-${week}-${day}-pranzo`
-        );
-
-        keys.push(
-            `mealPlanner-${year}-week-${week}-${day}-cena`
-        );
-    });
-
-    return keys;
-}
-
-
-function countMealsInWeek(year, week) {
-    const keys = getWeekMealKeys(year, week);
-
-    let count = 0;
-
-    keys.forEach((key) => {
-        if (localStorage.getItem(key)) {
-            count++;
-        }
-    });
-
-    return count;
-}
-
-
-/* =========================
-   MIGRAZIONE VECCHI DATI
-========================= */
-
-function migrateOldMeals() {
-    if (localStorage.getItem(MIGRATION_KEY)) {
-        return;
-    }
-
-    const todayWeek = getISOWeekInfo();
-
-    const oldMeals = [];
-
-    meals.forEach((meal) => {
-        const day = meal.dataset.day;
-        const mealType = meal.dataset.meal;
-
-        const oldKey = `${day}-${mealType}`;
-        const oldData = localStorage.getItem(oldKey);
-
-        if (oldData) {
-            oldMeals.push({
-                oldKey,
-                day,
-                mealType,
-                data: oldData
-            });
-        }
-    });
-
-    oldMeals.forEach((item) => {
-        const newKey =
-            `mealPlanner-${todayWeek.year}-week-${todayWeek.week}-${item.day}-${item.mealType}`;
-
-        if (!localStorage.getItem(newKey)) {
-            localStorage.setItem(
-                newKey,
-                item.data
-            );
-        }
-
-        localStorage.removeItem(
-            item.oldKey
-        );
-    });
-
-
-    const oldShopping =
-        localStorage.getItem("shoppingChecked");
-
-    if (oldShopping) {
-        localStorage.setItem(
-            `mealPlanner-${todayWeek.year}-week-${todayWeek.week}-shoppingChecked`,
-            oldShopping
-        );
-
-        localStorage.removeItem(
-            "shoppingChecked"
-        );
-    }
-
-
-    if (oldMeals.length > 0) {
-        addWeekToHistory(
-            todayWeek.year,
-            todayWeek.week
-        );
-    }
-
-    localStorage.setItem(
-        MIGRATION_KEY,
-        "true"
-    );
-}
-
-
-/* =========================
-   HEADER SETTIMANA
-========================= */
+/* =========================================================
+   SETTIMANA / DATE
+   ========================================================= */
 
 function updateWeekDisplay() {
-    weekNumberElement.textContent =
-        currentWeek.week;
-
-    weekYearElement.textContent =
-        currentWeek.year;
+    weekNumberElement.textContent = currentWeek.week;
+    weekYearElement.textContent = currentWeek.year;
 
     updateDayDates();
 }
 
-
-/* =========================
-   DATE DEI GIORNI
-========================= */
 
 function updateDayDates() {
     const monday = getWeekStart(
@@ -360,33 +214,26 @@ function updateDayDates() {
     const dayHeaders =
         document.querySelectorAll(".day-header");
 
-    dayHeaders.forEach(
-        (header, index) => {
-            const date = new Date(monday);
+    dayHeaders.forEach((header, index) => {
+        const date = new Date(monday);
 
-            date.setUTCDate(
-                monday.getUTCDate() + index
-            );
+        date.setUTCDate(
+            monday.getUTCDate() + index
+        );
 
-            const dayNumber =
-                date.getUTCDate();
+        const dayNumber = date.getUTCDate();
 
-            header.innerHTML = `
-                <span class="day-name">
-                    ${DAY_NAMES[index]}
-                </span>
-                <span class="day-number">
-                    ${dayNumber}
-                </span>
-            `;
-        }
-    );
+        header.innerHTML = `
+            <span class="day-name">
+                ${DAY_NAMES[index]}
+            </span>
+            <span class="day-number">
+                ${dayNumber}
+            </span>
+        `;
+    });
 }
 
-
-/* =========================
-   CAMBIO SETTIMANA
-========================= */
 
 function changeWeek(direction) {
     const monday = getWeekStart(
@@ -395,8 +242,7 @@ function changeWeek(direction) {
     );
 
     monday.setUTCDate(
-        monday.getUTCDate() +
-        direction * 7
+        monday.getUTCDate() + direction * 7
     );
 
     currentWeek = getISOWeekInfo(
@@ -408,9 +254,8 @@ function changeWeek(direction) {
     );
 
     saveCurrentWeek();
-
     updateWeekDisplay();
-    loadMeals();
+    loadWeekFromSupabase();
 }
 
 
@@ -430,15 +275,341 @@ nextWeekButton.addEventListener(
 );
 
 
-/* =========================
+/* =========================================================
+   AUTENTICAZIONE
+   ========================================================= */
+
+async function getCurrentUser() {
+    const {
+        data,
+        error
+    } = await supabaseClient.auth.getUser();
+
+    if (error) {
+        currentUser = null;
+        return null;
+    }
+
+    currentUser = data.user || null;
+    return currentUser;
+}
+
+
+async function loginUser() {
+    const email = window.prompt(
+        "Inserisci la tua email:"
+    );
+
+    if (!email) {
+        return false;
+    }
+
+    const password = window.prompt(
+        "Inserisci la tua password:"
+    );
+
+    if (!password) {
+        return false;
+    }
+
+    const {
+        data,
+        error
+    } = await supabaseClient.auth.signInWithPassword({
+        email: email.trim(),
+        password
+    });
+
+    if (error) {
+        alert(
+            "Accesso non riuscito:\n" +
+            error.message
+        );
+        return false;
+    }
+
+    currentUser = data.user;
+
+    alert(
+        "Accesso effettuato! Ora puoi modificare il planner."
+    );
+
+    await migrateLocalDataToSupabase();
+    await loadWeekFromSupabase();
+
+    return true;
+}
+
+
+async function requireLogin() {
+    if (currentUser) {
+        return true;
+    }
+
+    const confirmed = window.confirm(
+        "Per modificare il planner devi accedere.\n\n" +
+        "Vuoi effettuare l'accesso?"
+    );
+
+    if (!confirmed) {
+        return false;
+    }
+
+    return await loginUser();
+}
+
+
+/* =========================================================
+   SUPABASE - CARICAMENTO PASTI
+   ========================================================= */
+
+async function loadWeekMealsFromSupabase() {
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("meals")
+        .select("*")
+        .eq("week_year", currentWeek.year)
+        .eq("week_number", currentWeek.week);
+
+    if (error) {
+        console.error(
+            "Errore caricamento pasti:",
+            error
+        );
+
+        currentWeekMeals = [];
+        return [];
+    }
+
+    currentWeekMeals = data || [];
+
+    return currentWeekMeals;
+}
+
+
+async function loadShoppingFromSupabase() {
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("shopping_checked")
+        .select("*")
+        .eq("week_year", currentWeek.year)
+        .eq("week_number", currentWeek.week);
+
+    if (error) {
+        console.error(
+            "Errore caricamento lista spesa:",
+            error
+        );
+
+        currentShoppingChecked = [];
+        return [];
+    }
+
+    currentShoppingChecked = data || [];
+
+    return currentShoppingChecked;
+}
+
+
+async function loadWeekFromSupabase() {
+    await loadWeekMealsFromSupabase();
+    await loadShoppingFromSupabase();
+
+    renderAllMeals();
+    updateShoppingList();
+    await updateWeekHistory();
+}
+
+
+/* =========================================================
+   CONVERSIONE DATI
+   ========================================================= */
+
+function databaseMealToFrontend(row) {
+    return {
+        name: row.name || "",
+        type: row.together
+            ? "together"
+            : "alone",
+        ingredients:
+            Array.isArray(row.ingredients)
+                ? row.ingredients
+                : []
+    };
+}
+
+
+function frontendMealToDatabase(mealElement, data) {
+    return {
+        week_year: currentWeek.year,
+        week_number: currentWeek.week,
+        day_name: mealElement.dataset.day,
+        meal_type: mealElement.dataset.meal,
+        name: data.name,
+        together: data.type === "together",
+        ingredients: data.ingredients || [],
+        updated_at: new Date().toISOString()
+    };
+}
+
+
+/* =========================================================
+   RECUPERA PASTO
+   ========================================================= */
+
+function findDatabaseMeal(mealElement) {
+    return currentWeekMeals.find(
+        (row) =>
+            row.day_name === mealElement.dataset.day &&
+            row.meal_type === mealElement.dataset.meal
+    ) || null;
+}
+
+
+function getSavedMeal(mealElement) {
+    const databaseMeal =
+        findDatabaseMeal(mealElement);
+
+    if (!databaseMeal) {
+        return null;
+    }
+
+    return databaseMealToFrontend(
+        databaseMeal
+    );
+}
+
+
+/* =========================================================
+   SALVA PASTO SU SUPABASE
+   ========================================================= */
+
+async function saveMealToSupabase(
+    mealElement,
+    mealData
+) {
+    if (!await requireLogin()) {
+        return false;
+    }
+
+    const databaseData =
+        frontendMealToDatabase(
+            mealElement,
+            mealData
+        );
+
+    const existing =
+        findDatabaseMeal(mealElement);
+
+    let result;
+
+    if (existing) {
+        result = await supabaseClient
+            .from("meals")
+            .update(databaseData)
+            .eq("id", existing.id)
+            .select()
+            .single();
+    } else {
+        result = await supabaseClient
+            .from("meals")
+            .insert(databaseData)
+            .select()
+            .single();
+    }
+
+    if (result.error) {
+        console.error(
+            "Errore salvataggio pasto:",
+            result.error
+        );
+
+        alert(
+            "Non è stato possibile salvare il pasto:\n" +
+            result.error.message
+        );
+
+        return false;
+    }
+
+    if (existing) {
+        const index =
+            currentWeekMeals.findIndex(
+                (row) => row.id === existing.id
+            );
+
+        if (index !== -1) {
+            currentWeekMeals[index] =
+                result.data;
+        }
+    } else {
+        currentWeekMeals.push(result.data);
+    }
+
+    return true;
+}
+
+
+/* =========================================================
+   ELIMINA PASTO DA SUPABASE
+   ========================================================= */
+
+async function deleteMealFromSupabase(
+    mealElement
+) {
+    if (!await requireLogin()) {
+        return false;
+    }
+
+    const existing =
+        findDatabaseMeal(mealElement);
+
+    if (!existing) {
+        return true;
+    }
+
+    const {
+        error
+    } = await supabaseClient
+        .from("meals")
+        .delete()
+        .eq("id", existing.id);
+
+    if (error) {
+        console.error(
+            "Errore eliminazione pasto:",
+            error
+        );
+
+        alert(
+            "Non è stato possibile eliminare il pasto:\n" +
+            error.message
+        );
+
+        return false;
+    }
+
+    currentWeekMeals =
+        currentWeekMeals.filter(
+            (row) => row.id !== existing.id
+        );
+
+    return true;
+}
+
+
+/* =========================================================
    CLICK SULLE CARD
-========================= */
+   ========================================================= */
 
 meals.forEach((meal) => {
     meal.addEventListener(
         "click",
         (event) => {
-
             if (
                 event.target.closest(".meal-action")
             ) {
@@ -467,9 +638,9 @@ meals.forEach((meal) => {
 });
 
 
-/* =========================
+/* =========================================================
    MODAL PASTO
-========================= */
+   ========================================================= */
 
 function openMealEditor(meal) {
     currentMeal = meal;
@@ -493,10 +664,9 @@ function openMealEditor(meal) {
         loadQuickIngredients(
             savedMeal.ingredients || []
         );
-
     } else {
-
         mealInput.value = "";
+
         selectedType = null;
 
         modalTitle.textContent = "+";
@@ -545,9 +715,9 @@ mealModal.addEventListener(
 );
 
 
-/* =========================
+/* =========================================================
    TIPO PASTO
-========================= */
+   ========================================================= */
 
 mealOptions.forEach((option) => {
     option.addEventListener(
@@ -564,31 +734,39 @@ mealOptions.forEach((option) => {
 
 function updateSelectedOption() {
     mealOptions.forEach((option) => {
-        option.classList.remove("selected");
+        option.classList.remove(
+            "selected"
+        );
 
         if (
             option.dataset.type ===
             selectedType
         ) {
-            option.classList.add("selected");
+            option.classList.add(
+                "selected"
+            );
         }
     });
 }
 
 
-/* =========================
+/* =========================================================
    INGREDIENTI RAPIDI
-========================= */
+   ========================================================= */
 
-function loadQuickIngredients(ingredients) {
+function loadQuickIngredients(
+    ingredients
+) {
     quickIngredientsList.innerHTML = "";
 
-    ingredients.forEach((ingredient) => {
-        addQuickIngredientRow(
-            ingredient.name,
-            ingredient.quantity
-        );
-    });
+    ingredients.forEach(
+        (ingredient) => {
+            addQuickIngredientRow(
+                ingredient.name,
+                ingredient.quantity
+            );
+        }
+    );
 }
 
 
@@ -602,42 +780,32 @@ function addQuickIngredientRow(
     row.className =
         "quick-ingredient-row";
 
-
     const nameInput =
         document.createElement("input");
 
     nameInput.type = "text";
-
     nameInput.className =
         "quick-ingredient-input quick-name";
-
     nameInput.placeholder =
         "Ingrediente";
-
     nameInput.value =
         ingredientName;
-
 
     const quantityInput =
         document.createElement("input");
 
     quantityInput.type = "text";
-
     quantityInput.className =
         "quick-ingredient-input quick-quantity";
-
     quantityInput.placeholder =
         "Quantità";
-
     quantityInput.value =
         quantity;
-
 
     const removeButton =
         document.createElement("button");
 
     removeButton.type = "button";
-
     removeButton.className =
         "quick-ingredient-remove";
 
@@ -649,14 +817,12 @@ function addQuickIngredientRow(
     removeButton.innerHTML =
         '<i class="fa-solid fa-xmark"></i>';
 
-
     removeButton.addEventListener(
         "click",
         () => {
             row.remove();
         }
     );
-
 
     row.appendChild(nameInput);
     row.appendChild(quantityInput);
@@ -675,7 +841,6 @@ function getQuickIngredients() {
     const ingredients = [];
 
     rows.forEach((row) => {
-
         const name =
             row.querySelector(
                 ".quick-name"
@@ -704,7 +869,6 @@ function getQuickIngredients() {
 addQuickIngredientButton.addEventListener(
     "click",
     () => {
-
         addQuickIngredientRow();
 
         const rows =
@@ -717,21 +881,22 @@ addQuickIngredientButton.addEventListener(
 
         if (lastRow) {
             lastRow
-                .querySelector(".quick-name")
+                .querySelector(
+                    ".quick-name"
+                )
                 .focus();
         }
     }
 );
 
 
-/* =========================
+/* =========================================================
    SALVA PASTO
-========================= */
+   ========================================================= */
 
 saveButton.addEventListener(
     "click",
-    () => {
-
+    async () => {
         if (!currentMeal) {
             return;
         }
@@ -758,12 +923,15 @@ saveButton.addEventListener(
                 getQuickIngredients()
         };
 
+        const saved =
+            await saveMealToSupabase(
+                currentMeal,
+                mealData
+            );
 
-        localStorage.setItem(
-            getMealStorageKey(currentMeal),
-            JSON.stringify(mealData)
-        );
-
+        if (!saved) {
+            return;
+        }
 
         renderMeal(
             currentMeal,
@@ -772,51 +940,65 @@ saveButton.addEventListener(
 
         updateShoppingList();
 
-        addWeekToHistory(
-            currentWeek.year,
-            currentWeek.week
-        );
-
         closeMealModal();
+
+        await updateWeekHistory();
     }
 );
 
 
-/* =========================
+/* =========================================================
    ELIMINA PASTO
-========================= */
+   ========================================================= */
 
 deleteButton.addEventListener(
     "click",
-    () => {
-
+    async () => {
         if (!currentMeal) {
             return;
         }
 
-        localStorage.removeItem(
-            getMealStorageKey(currentMeal)
-        );
+        const deleted =
+            await deleteMealFromSupabase(
+                currentMeal
+            );
 
-        resetMealElement(currentMeal);
+        if (!deleted) {
+            return;
+        }
+
+        resetMealElement(
+            currentMeal
+        );
 
         updateShoppingList();
 
-        updateWeekHistory();
+        await updateWeekHistory();
 
         closeMealModal();
     }
 );
 
 
-/* =========================
+/* =========================================================
    RESET CARD
-========================= */
+   ========================================================= */
 
-function resetMealElement(mealElement) {
-    mealElement.classList.remove("alone");
-    mealElement.classList.remove("together");
-    mealElement.classList.remove("has-meal");
+function resetMealElement(
+    mealElement
+) {
+    mealElement.classList.remove(
+        "alone"
+    );
+
+    mealElement.classList.remove(
+        "together"
+    );
+
+    mealElement.classList.remove(
+        "has-meal"
+    );
+
     mealElement.classList.remove(
         "mobile-actions-visible"
     );
@@ -831,9 +1013,9 @@ function resetMealElement(mealElement) {
 }
 
 
-/* =========================
+/* =========================================================
    RENDER PASTO
-========================= */
+   ========================================================= */
 
 function renderMeal(
     mealElement,
@@ -844,19 +1026,30 @@ function renderMeal(
             ".meal-content"
         );
 
-    mealElement.classList.remove("alone");
-    mealElement.classList.remove("together");
-    mealElement.classList.remove("has-meal");
+    mealElement.classList.remove(
+        "alone"
+    );
 
-    mealElement.classList.add(data.type);
-    mealElement.classList.add("has-meal");
+    mealElement.classList.remove(
+        "together"
+    );
 
+    mealElement.classList.remove(
+        "has-meal"
+    );
+
+    mealElement.classList.add(
+        data.type
+    );
+
+    mealElement.classList.add(
+        "has-meal"
+    );
 
     const iconClass =
         data.type === "together"
             ? "fa-solid fa-heart"
             : "fa-regular fa-heart";
-
 
     content.innerHTML = `
         <span class="meal-name">
@@ -866,7 +1059,6 @@ function renderMeal(
         <i class="${iconClass} meal-type-icon"></i>
 
         <div class="meal-actions">
-
             <button
                 type="button"
                 class="meal-action edit-action"
@@ -882,10 +1074,8 @@ function renderMeal(
             >
                 <i class="fa-solid fa-scale-balanced"></i>
             </button>
-
         </div>
     `;
-
 
     const editButton =
         content.querySelector(
@@ -895,17 +1085,17 @@ function renderMeal(
     editButton.addEventListener(
         "click",
         (event) => {
-
             event.stopPropagation();
 
             mealElement.classList.remove(
                 "mobile-actions-visible"
             );
 
-            openMealEditor(mealElement);
+            openMealEditor(
+                mealElement
+            );
         }
     );
-
 
     const ingredientsButton =
         content.querySelector(
@@ -915,7 +1105,6 @@ function renderMeal(
     ingredientsButton.addEventListener(
         "click",
         (event) => {
-
             event.stopPropagation();
 
             mealElement.classList.remove(
@@ -930,11 +1119,34 @@ function renderMeal(
 }
 
 
-/* =========================
-   MODAL INGREDIENTI
-========================= */
+/* =========================================================
+   RENDER TUTTI I PASTI
+   ========================================================= */
 
-function openIngredientsEditor(mealElement) {
+function renderAllMeals() {
+    meals.forEach((meal) => {
+        resetMealElement(meal);
+
+        const savedMeal =
+            getSavedMeal(meal);
+
+        if (savedMeal) {
+            renderMeal(
+                meal,
+                savedMeal
+            );
+        }
+    });
+}
+
+
+/* =========================================================
+   MODAL INGREDIENTI
+   ========================================================= */
+
+function openIngredientsEditor(
+    mealElement
+) {
     currentIngredientMeal =
         mealElement;
 
@@ -1018,42 +1230,32 @@ function addIngredientRow(
     row.className =
         "ingredient-row";
 
-
     const nameInput =
         document.createElement("input");
 
     nameInput.type = "text";
-
     nameInput.className =
         "ingredient-input ingredient-name-input";
-
     nameInput.placeholder =
         "Ingrediente";
-
     nameInput.value =
         ingredientName;
-
 
     const quantityInput =
         document.createElement("input");
 
     quantityInput.type = "text";
-
     quantityInput.className =
         "ingredient-input ingredient-quantity-input";
-
     quantityInput.placeholder =
         "Quantità";
-
     quantityInput.value =
         quantity;
-
 
     const removeButton =
         document.createElement("button");
 
     removeButton.type = "button";
-
     removeButton.className =
         "remove-ingredient";
 
@@ -1065,14 +1267,12 @@ function addIngredientRow(
     removeButton.innerHTML =
         '<i class="fa-solid fa-xmark"></i>';
 
-
     removeButton.addEventListener(
         "click",
         () => {
             row.remove();
         }
     );
-
 
     row.appendChild(nameInput);
     row.appendChild(quantityInput);
@@ -1082,15 +1282,18 @@ function addIngredientRow(
 }
 
 
-/* =========================
+/* =========================================================
    SALVA INGREDIENTI
-========================= */
+   ========================================================= */
 
 saveIngredientsButton.addEventListener(
     "click",
-    () => {
-
+    async () => {
         if (!currentIngredientMeal) {
+            return;
+        }
+
+        if (!await requireLogin()) {
             return;
         }
 
@@ -1102,7 +1305,6 @@ saveIngredientsButton.addEventListener(
         const ingredients = [];
 
         rows.forEach((row) => {
-
             const name =
                 row.querySelector(
                     ".ingredient-name-input"
@@ -1124,7 +1326,6 @@ saveIngredientsButton.addEventListener(
             }
         });
 
-
         const mealData =
             getSavedMeal(
                 currentIngredientMeal
@@ -1134,68 +1335,29 @@ saveIngredientsButton.addEventListener(
             return;
         }
 
-
         mealData.ingredients =
             ingredients;
 
+        const saved =
+            await saveMealToSupabase(
+                currentIngredientMeal,
+                mealData
+            );
 
-        localStorage.setItem(
-            getMealStorageKey(
-                currentIngredientMeal
-            ),
-            JSON.stringify(mealData)
-        );
-
-
-        updateShoppingList();
-
-        addWeekToHistory(
-            currentWeek.year,
-            currentWeek.week
-        );
+        if (!saved) {
+            return;
+        }
 
         closeIngredientsModal();
+
+        updateShoppingList();
     }
 );
 
 
-/* =========================
-   RECUPERA PASTO
-========================= */
-
-function getSavedMeal(mealElement) {
-    const savedMeal =
-        localStorage.getItem(
-            getMealStorageKey(mealElement)
-        );
-
-    if (!savedMeal) {
-        return null;
-    }
-
-    try {
-        const data =
-            JSON.parse(savedMeal);
-
-        if (
-            !Array.isArray(
-                data.ingredients
-            )
-        ) {
-            data.ingredients = [];
-        }
-
-        return data;
-
-    } catch (error) {
-        return null;
-    }
-}
-
-
-/* =========================
+/* =========================================================
    LISTA DELLA SPESA
-========================= */
+   ========================================================= */
 
 function updateShoppingList() {
     const aggregated =
@@ -1210,9 +1372,7 @@ function updateShoppingList() {
                 : "ingredienti"
         }`;
 
-
     if (aggregated.length === 0) {
-
         shoppingList.innerHTML = `
             <div class="shopping-empty">
                 Nessun ingrediente aggiunto
@@ -1222,32 +1382,32 @@ function updateShoppingList() {
         return;
     }
 
-
-    const checkedItems =
-        getCheckedShoppingItems();
-
-
     aggregated.forEach((item) => {
-
         const row =
             document.createElement("div");
 
         row.className =
             "shopping-item";
 
-
         const itemKey =
             normalizeIngredientName(
                 item.name
             );
 
+        const isChecked =
+            currentShoppingChecked.some(
+                (entry) =>
+                    normalizeIngredientName(
+                        entry.ingredient_name
+                    ) === itemKey &&
+                    entry.checked === true
+            );
 
-        if (
-            checkedItems.includes(itemKey)
-        ) {
-            row.classList.add("checked");
+        if (isChecked) {
+            row.classList.add(
+                "checked"
+            );
         }
-
 
         row.innerHTML = `
             <button
@@ -1267,107 +1427,184 @@ function updateShoppingList() {
             </span>
         `;
 
-
         const checkButton =
             row.querySelector(
                 ".shopping-check"
             );
 
-
         checkButton.addEventListener(
             "click",
-            () => {
+            async () => {
+                if (!await requireLogin()) {
+                    return;
+                }
 
-                toggleShoppingItem(itemKey);
+                const newChecked =
+                    !row.classList.contains(
+                        "checked"
+                    );
 
-                row.classList.toggle(
-                    "checked"
-                );
+                const saved =
+                    await saveShoppingCheck(
+                        itemKey,
+                        item.name,
+                        newChecked
+                    );
+
+                if (saved) {
+                    row.classList.toggle(
+                        "checked",
+                        newChecked
+                    );
+                }
             }
         );
-
 
         shoppingList.appendChild(row);
     });
 }
 
 
-function getCheckedShoppingItems() {
-    const saved =
-        localStorage.getItem(
-            getShoppingStorageKey()
+/* =========================================================
+   SALVA CHECK LIST SU SUPABASE
+   ========================================================= */
+
+async function saveShoppingCheck(
+    itemKey,
+    displayName,
+    checked
+) {
+    if (!currentUser) {
+        return false;
+    }
+
+    const existing =
+        currentShoppingChecked.find(
+            (entry) =>
+                normalizeIngredientName(
+                    entry.ingredient_name
+                ) === itemKey
         );
 
-    if (!saved) {
-        return [];
-    }
+    if (checked) {
+        if (existing) {
+            const {
+                data,
+                error
+            } = await supabaseClient
+                .from("shopping_checked")
+                .update({
+                    checked: true
+                })
+                .eq("id", existing.id)
+                .select()
+                .single();
 
-    try {
-        const data =
-            JSON.parse(saved);
+            if (error) {
+                console.error(
+                    "Errore aggiornamento spesa:",
+                    error
+                );
+                return false;
+            }
 
-        return Array.isArray(data)
-            ? data
-            : [];
+            const index =
+                currentShoppingChecked.findIndex(
+                    (entry) =>
+                        entry.id === existing.id
+                );
 
-    } catch (error) {
-        return [];
-    }
-}
+            currentShoppingChecked[index] =
+                data;
+        } else {
+            const {
+                data,
+                error
+            } = await supabaseClient
+                .from("shopping_checked")
+                .insert({
+                    week_year: currentWeek.year,
+                    week_number: currentWeek.week,
+                    ingredient_name: displayName,
+                    checked: true
+                })
+                .select()
+                .single();
 
+            if (error) {
+                console.error(
+                    "Errore salvataggio spesa:",
+                    error
+                );
+                return false;
+            }
 
-function toggleShoppingItem(itemKey) {
-    const checked =
-        getCheckedShoppingItems();
-
-    const index =
-        checked.indexOf(itemKey);
-
-
-    if (index === -1) {
-        checked.push(itemKey);
+            currentShoppingChecked.push(
+                data
+            );
+        }
     } else {
-        checked.splice(index, 1);
+        if (!existing) {
+            return true;
+        }
+
+        const {
+            error
+        } = await supabaseClient
+            .from("shopping_checked")
+            .delete()
+            .eq("id", existing.id);
+
+        if (error) {
+            console.error(
+                "Errore eliminazione spesa:",
+                error
+            );
+            return false;
+        }
+
+        currentShoppingChecked =
+            currentShoppingChecked.filter(
+                (entry) =>
+                    entry.id !== existing.id
+            );
     }
 
-
-    localStorage.setItem(
-        getShoppingStorageKey(),
-        JSON.stringify(checked)
-    );
+    return true;
 }
 
 
-/* =========================
+/* =========================================================
    AGGREGA INGREDIENTI
-========================= */
+   ========================================================= */
 
 function aggregateIngredients() {
     const groups = new Map();
 
-
-    meals.forEach((meal) => {
-
+    currentWeekMeals.forEach((row) => {
         const data =
-            getSavedMeal(meal);
+            databaseMealToFrontend(row);
 
         if (
             !data ||
-            !Array.isArray(data.ingredients)
+            !Array.isArray(
+                data.ingredients
+            )
         ) {
             return;
         }
 
-
         data.ingredients.forEach(
             (ingredient) => {
-
                 const name =
-                    ingredient.name.trim();
+                    String(
+                        ingredient.name || ""
+                    ).trim();
 
                 const quantity =
-                    ingredient.quantity.trim();
-
+                    String(
+                        ingredient.quantity || ""
+                    ).trim();
 
                 if (
                     name === "" ||
@@ -1376,12 +1613,10 @@ function aggregateIngredients() {
                     return;
                 }
 
-
                 const key =
                     normalizeIngredientName(
                         name
                     );
-
 
                 if (!groups.has(key)) {
                     groups.set(
@@ -1393,7 +1628,6 @@ function aggregateIngredients() {
                     );
                 }
 
-
                 groups
                     .get(key)
                     .quantities
@@ -1402,12 +1636,9 @@ function aggregateIngredients() {
         );
     });
 
-
     const result = [];
 
-
     groups.forEach((group) => {
-
         result.push({
             name: group.name,
             quantity:
@@ -1417,7 +1648,6 @@ function aggregateIngredients() {
         });
     });
 
-
     result.sort(
         (a, b) =>
             a.name.localeCompare(
@@ -1426,42 +1656,44 @@ function aggregateIngredients() {
             )
     );
 
-
     return result;
 }
 
 
-/* =========================
+/* =========================================================
    NORMALIZZA NOME
-========================= */
+   ========================================================= */
 
-function normalizeIngredientName(name) {
-    return name
+function normalizeIngredientName(
+    name
+) {
+    return String(name)
         .trim()
         .toLowerCase()
         .replace(/\s+/g, " ");
 }
 
 
-/* =========================
+/* =========================================================
    QUANTITÀ
-========================= */
+   ========================================================= */
 
-function combineQuantities(quantities) {
+function combineQuantities(
+    quantities
+) {
     const parsed =
-        quantities.map(parseQuantity);
+        quantities.map(
+            parseQuantity
+        );
 
     const allParsed =
         parsed.every(
             (item) => item !== null
         );
 
-
     if (allParsed) {
-
         const firstUnit =
             parsed[0].unit;
-
 
         const sameUnit =
             parsed.every(
@@ -1469,9 +1701,7 @@ function combineQuantities(quantities) {
                     item.unit === firstUnit
             );
 
-
         if (sameUnit) {
-
             const total =
                 parsed.reduce(
                     (sum, item) =>
@@ -1485,7 +1715,6 @@ function combineQuantities(quantities) {
             );
         }
 
-
         const weightUnits =
             parsed.every(
                 (item) =>
@@ -1493,13 +1722,10 @@ function combineQuantities(quantities) {
                     item.unit === "kg"
             );
 
-
         if (weightUnits) {
-
             let grams = 0;
 
             parsed.forEach((item) => {
-
                 if (item.unit === "kg") {
                     grams +=
                         item.value * 1000;
@@ -1509,10 +1735,8 @@ function combineQuantities(quantities) {
                 }
             });
 
-
             return formatWeight(grams);
         }
-
 
         const liquidUnits =
             parsed.every(
@@ -1521,13 +1745,10 @@ function combineQuantities(quantities) {
                     item.unit === "l"
             );
 
-
         if (liquidUnits) {
-
             let milliliters = 0;
 
             parsed.forEach((item) => {
-
                 if (item.unit === "l") {
                     milliliters +=
                         item.value * 1000;
@@ -1537,13 +1758,11 @@ function combineQuantities(quantities) {
                 }
             });
 
-
             return formatLiquid(
                 milliliters
             );
         }
     }
-
 
     return quantities.join(" + ");
 }
@@ -1556,25 +1775,20 @@ function parseQuantity(text) {
             .toLowerCase()
             .replace(",", ".");
 
-
     const match =
         normalized.match(
             /^(\d+(?:\.\d+)?)\s*(kg|g|l|ml|barattolo|barattoli|bottiglia|bottiglie|confezione|confezioni|pz|pezzo|pezzi|uovo|uova)?$/
         );
 
-
     if (!match) {
         return null;
     }
 
-
     const value =
         Number(match[1]);
 
-
     let unit =
         match[2] || "";
-
 
     if (
         unit === "barattolo" ||
@@ -1583,7 +1797,6 @@ function parseQuantity(text) {
         unit = "barattoli";
     }
 
-
     if (
         unit === "bottiglia" ||
         unit === "bottiglie"
@@ -1591,14 +1804,12 @@ function parseQuantity(text) {
         unit = "bottiglie";
     }
 
-
     if (
         unit === "confezione" ||
         unit === "confezioni"
     ) {
         unit = "confezioni";
     }
-
 
     if (
         unit === "pz" ||
@@ -1608,14 +1819,12 @@ function parseQuantity(text) {
         unit = "pz";
     }
 
-
     if (
         unit === "uovo" ||
         unit === "uova"
     ) {
         unit = "uova";
     }
-
 
     return {
         value,
@@ -1624,12 +1833,16 @@ function parseQuantity(text) {
 }
 
 
-function formatQuantity(value, unit) {
+function formatQuantity(
+    value,
+    unit
+) {
     const rounded =
         Number.isInteger(value)
             ? value
-            : Number(value.toFixed(2));
-
+            : Number(
+                value.toFixed(2)
+            );
 
     return `${rounded}${
         unit
@@ -1641,154 +1854,102 @@ function formatQuantity(value, unit) {
 
 function formatWeight(grams) {
     if (grams >= 1000) {
-
         const kg =
             grams / 1000;
 
         const value =
             Number.isInteger(kg)
                 ? kg
-                : Number(kg.toFixed(2));
+                : Number(
+                    kg.toFixed(2)
+                );
 
         return `${value} kg`;
     }
-
 
     return `${grams} g`;
 }
 
 
-function formatLiquid(milliliters) {
+function formatLiquid(
+    milliliters
+) {
     if (milliliters >= 1000) {
-
         const liters =
             milliliters / 1000;
 
         const value =
             Number.isInteger(liters)
                 ? liters
-                : Number(liters.toFixed(2));
+                : Number(
+                    liters.toFixed(2)
+                );
 
         return `${value} l`;
     }
-
 
     return `${milliliters} ml`;
 }
 
 
-/* =========================
-   STORICO
-========================= */
+/* =========================================================
+   STORICO DA SUPABASE
+   ========================================================= */
 
-function getHistory() {
-    const saved =
-        localStorage.getItem(HISTORY_KEY);
-
-    if (!saved) {
-        return [];
-    }
-
-    try {
-        const history =
-            JSON.parse(saved);
-
-        return Array.isArray(history)
-            ? history
-            : [];
-
-    } catch (error) {
-        return [];
-    }
-}
-
-
-function saveHistory(history) {
-    localStorage.setItem(
-        HISTORY_KEY,
-        JSON.stringify(history)
-    );
-}
-
-
-function addWeekToHistory(year, week) {
-    const history =
-        getHistory();
-
-    const exists =
-        history.some(
-            (item) =>
-                item.year === year &&
-                item.week === week
+async function updateWeekHistory() {
+    const {
+        data,
+        error
+    } = await supabaseClient
+        .from("meals")
+        .select(
+            "week_year, week_number"
         );
 
+    if (error) {
+        console.error(
+            "Errore caricamento storico:",
+            error
+        );
+        return;
+    }
 
-    if (!exists) {
+    const weeks = new Map();
 
-        history.push({
-            year,
-            week
-        });
+    (data || []).forEach((row) => {
+        const key =
+            `${row.week_year}-${row.week_number}`;
 
-        history.sort(
-            (a, b) => {
-
-                if (a.year !== b.year) {
-                    return b.year - a.year;
+        if (!weeks.has(key)) {
+            weeks.set(
+                key,
+                {
+                    year: row.week_year,
+                    week: row.week_number,
+                    count: 0
                 }
+            );
+        }
 
-                return b.week - a.week;
+        weeks.get(key).count++;
+    });
+
+    window.mealPlannerHistory =
+        Array.from(
+            weeks.values()
+        ).sort((a, b) => {
+            if (a.year !== b.year) {
+                return b.year - a.year;
             }
-        );
 
-        saveHistory(history);
-    }
+            return b.week - a.week;
+        });
 }
 
 
-function removeWeekFromHistory(
-    year,
-    week
-) {
-    const history =
-        getHistory().filter(
-            (item) =>
-                !(
-                    item.year === year &&
-                    item.week === week
-                )
-        );
+async function openHistory() {
+    await updateWeekHistory();
 
-    saveHistory(history);
-}
-
-
-function updateWeekHistory() {
-    const count =
-        countMealsInWeek(
-            currentWeek.year,
-            currentWeek.week
-        );
-
-
-    if (count > 0) {
-
-        addWeekToHistory(
-            currentWeek.year,
-            currentWeek.week
-        );
-
-    } else {
-
-        removeWeekFromHistory(
-            currentWeek.year,
-            currentWeek.week
-        );
-    }
-}
-
-
-function openHistory() {
     renderHistory();
 
     historyModal.classList.add(
@@ -1819,7 +1980,6 @@ closeHistoryButton.addEventListener(
 historyModal.addEventListener(
     "click",
     (event) => {
-
         if (
             event.target === historyModal
         ) {
@@ -1833,11 +1993,9 @@ function renderHistory() {
     historyList.innerHTML = "";
 
     const history =
-        getHistory();
-
+        window.mealPlannerHistory || [];
 
     if (history.length === 0) {
-
         historyList.innerHTML = `
             <div class="history-empty">
                 Nessuna settimana salvata.
@@ -1847,28 +2005,19 @@ function renderHistory() {
         return;
     }
 
-
     history.forEach((item) => {
-
-        const count =
-            countMealsInWeek(
-                item.year,
-                item.week
-            );
-
-
         const button =
-            document.createElement("button");
+            document.createElement(
+                "button"
+            );
 
         button.type = "button";
 
         button.className =
             "history-item";
 
-
         button.innerHTML = `
             <span class="history-item-main">
-
                 <span class="history-item-week">
                     Settimana ${item.week}
                 </span>
@@ -1876,29 +2025,28 @@ function renderHistory() {
                 <span class="history-item-year">
                     ${item.year}
                 </span>
-
             </span>
 
             <span class="history-item-count">
-                ${count}
-                ${count === 1 ? "pasto" : "pasti"}
+                ${item.count}
+                ${item.count === 1
+                    ? "pasto"
+                    : "pasti"}
             </span>
         `;
 
-
         button.addEventListener(
             "click",
-            () => {
-
+            async () => {
                 currentWeek = {
                     year: item.year,
                     week: item.week
                 };
 
                 saveCurrentWeek();
-
                 updateWeekDisplay();
-                loadMeals();
+
+                await loadWeekFromSupabase();
 
                 closeHistory();
 
@@ -1909,24 +2057,303 @@ function renderHistory() {
             }
         );
 
-
-        historyList.appendChild(button);
+        historyList.appendChild(
+            button
+        );
     });
 }
 
 
-/* =========================
+/* =========================================================
+   MIGRAZIONE VECCHI DATI LOCALSTORAGE → SUPABASE
+   ========================================================= */
+
+async function migrateLocalDataToSupabase() {
+    if (!currentUser) {
+        return;
+    }
+
+    if (
+        localStorage.getItem(
+            LOCAL_SUPABASE_MIGRATION_KEY
+        )
+    ) {
+        return;
+    }
+
+    const localMeals = [];
+
+    for (let year = 2024; year <= 2030; year++) {
+        const maxWeeks =
+            getWeeksInYear(year);
+
+        for (
+            let week = 1;
+            week <= maxWeeks;
+            week++
+        ) {
+            DAYS.forEach((day) => {
+                ["pranzo", "cena"].forEach(
+                    (mealType) => {
+                        const key =
+                            `mealPlanner-${year}-week-${week}-${day}-${mealType}`;
+
+                        const saved =
+                            localStorage.getItem(
+                                key
+                            );
+
+                        if (!saved) {
+                            return;
+                        }
+
+                        try {
+                            const parsed =
+                                JSON.parse(
+                                    saved
+                                );
+
+                            if (
+                                !parsed.name
+                            ) {
+                                return;
+                            }
+
+                            localMeals.push({
+                                week_year: year,
+                                week_number: week,
+                                day_name: day,
+                                meal_type: mealType,
+                                name: parsed.name,
+                                together:
+                                    parsed.type === "together",
+                                ingredients:
+                                    Array.isArray(
+                                        parsed.ingredients
+                                    )
+                                        ? parsed.ingredients
+                                        : []
+                            });
+                        } catch (error) {
+                            console.warn(
+                                "Dato locale non valido:",
+                                key
+                            );
+                        }
+                    }
+                );
+            });
+        }
+    }
+
+    if (localMeals.length > 0) {
+        for (const meal of localMeals) {
+            const {
+                data: existing,
+                error: searchError
+            } = await supabaseClient
+                .from("meals")
+                .select("id")
+                .eq(
+                    "week_year",
+                    meal.week_year
+                )
+                .eq(
+                    "week_number",
+                    meal.week_number
+                )
+                .eq(
+                    "day_name",
+                    meal.day_name
+                )
+                .eq(
+                    "meal_type",
+                    meal.meal_type
+                )
+                .maybeSingle();
+
+            if (searchError) {
+                console.warn(
+                    "Impossibile controllare pasto locale:",
+                    searchError
+                );
+                continue;
+            }
+
+            if (existing) {
+                continue;
+            }
+
+            const {
+                error
+            } = await supabaseClient
+                .from("meals")
+                .insert(meal);
+
+            if (error) {
+                console.warn(
+                    "Impossibile importare pasto:",
+                    error
+                );
+            }
+        }
+    }
+
+    localStorage.setItem(
+        LOCAL_SUPABASE_MIGRATION_KEY,
+        "true"
+    );
+
+    console.log(
+        "✅ Migrazione dati locali completata."
+    );
+}
+
+
+/* =========================================================
+   MIGRAZIONE VECCHI DATI ORIGINALI
+   ========================================================= */
+
+function migrateOldMeals() {
+    if (
+        localStorage.getItem(
+            OLD_MIGRATION_KEY
+        )
+    ) {
+        return;
+    }
+
+    const todayWeek =
+        getISOWeekInfo();
+
+    meals.forEach((meal) => {
+        const day =
+            meal.dataset.day;
+
+        const mealType =
+            meal.dataset.meal;
+
+        const oldKey =
+            `${day}-${mealType}`;
+
+        const oldData =
+            localStorage.getItem(
+                oldKey
+            );
+
+        if (!oldData) {
+            return;
+        }
+
+        const newKey =
+            `mealPlanner-${todayWeek.year}-week-${todayWeek.week}-${day}-${mealType}`;
+
+        if (
+            !localStorage.getItem(
+                newKey
+            )
+        ) {
+            localStorage.setItem(
+                newKey,
+                oldData
+            );
+        }
+
+        localStorage.removeItem(
+            oldKey
+        );
+    });
+
+    const oldShopping =
+        localStorage.getItem(
+            "shoppingChecked"
+        );
+
+    if (oldShopping) {
+        const newKey =
+            `mealPlanner-${todayWeek.year}-week-${todayWeek.week}-shoppingChecked`;
+
+        localStorage.setItem(
+            newKey,
+            oldShopping
+        );
+
+        localStorage.removeItem(
+            "shoppingChecked"
+        );
+    }
+
+    localStorage.setItem(
+        OLD_MIGRATION_KEY,
+        "true"
+    );
+}
+
+
+/* =========================================================
+   REALTIME
+   ========================================================= */
+
+function setupRealtime() {
+    if (realtimeChannel) {
+        supabaseClient.removeChannel(
+            realtimeChannel
+        );
+    }
+
+    realtimeChannel =
+        supabaseClient
+            .channel(
+                "meal-planner-live"
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "meals"
+                },
+                async () => {
+                    await loadWeekFromSupabase();
+                }
+            )
+            .on(
+                "postgres_changes",
+                {
+                    event: "*",
+                    schema: "public",
+                    table: "shopping_checked"
+                },
+                async () => {
+                    await loadWeekFromSupabase();
+                }
+            )
+            .subscribe();
+}
+
+
+/* =========================================================
+   REFRESH QUANDO SI TORNA SULLA PAGINA
+   ========================================================= */
+
+window.addEventListener(
+    "focus",
+    async () => {
+        await loadWeekFromSupabase();
+    }
+);
+
+
+/* =========================================================
    ESC
-========================= */
+   ========================================================= */
 
 document.addEventListener(
     "keydown",
     (event) => {
-
         if (event.key !== "Escape") {
             return;
         }
-
 
         if (
             mealModal.classList.contains(
@@ -1936,7 +2363,6 @@ document.addEventListener(
             closeMealModal();
         }
 
-
         if (
             ingredientsModal.classList.contains(
                 "active"
@@ -1944,7 +2370,6 @@ document.addEventListener(
         ) {
             closeIngredientsModal();
         }
-
 
         if (
             historyModal.classList.contains(
@@ -1957,20 +2382,19 @@ document.addEventListener(
 );
 
 
-/* =========================
+/* =========================================================
    AZIONI MOBILE
-========================= */
+   ========================================================= */
 
 document.addEventListener(
     "click",
     (event) => {
-
         if (
-            !event.target.closest(".meal")
+            !event.target.closest(
+                ".meal"
+            )
         ) {
-
             meals.forEach((meal) => {
-
                 meal.classList.remove(
                     "mobile-actions-visible"
                 );
@@ -1980,55 +2404,95 @@ document.addEventListener(
 );
 
 
-/* =========================
-   CARICAMENTO SETTIMANA
-========================= */
-
-function loadMeals() {
-
-    meals.forEach((meal) => {
-
-        resetMealElement(meal);
-
-        const savedMeal =
-            getSavedMeal(meal);
-
-        if (savedMeal) {
-
-            renderMeal(
-                meal,
-                savedMeal
-            );
-        }
-    });
-
-
-    updateShoppingList();
-}
-
-
-/* =========================
+/* =========================================================
    ESCAPE HTML
-========================= */
+   ========================================================= */
 
 function escapeHTML(value) {
     const div =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
-    div.textContent = value;
+    div.textContent =
+        String(value);
 
     return div.innerHTML;
 }
 
 
-/* =========================
+/* =========================================================
+   TEST SUPABASE
+   ========================================================= */
+
+async function testSupabase() {
+    const {
+        error
+    } = await supabaseClient
+        .from("meals")
+        .select("id")
+        .limit(1);
+
+    if (error) {
+        console.error(
+            "Errore collegamento Supabase:",
+            error
+        );
+
+        return false;
+    }
+
+    console.log(
+        "✅ Supabase collegato correttamente"
+    );
+
+    return true;
+}
+
+
+/* =========================================================
    AVVIO
-========================= */
+   ========================================================= */
 
-migrateOldMeals();
+async function init() {
+    migrateOldMeals();
 
-updateWeekDisplay();
+    updateWeekDisplay();
 
-loadMeals();
+    const connected =
+        await testSupabase();
 
-updateWeekHistory();
+    if (!connected) {
+        console.error(
+            "❌ Supabase non disponibile."
+        );
+
+        return;
+    }
+
+    await getCurrentUser();
+
+    /*
+       Se l'utente è già autenticato,
+       importiamo eventuali dati locali
+       e poi carichiamo il database.
+    */
+
+    if (currentUser) {
+        await migrateLocalDataToSupabase();
+    }
+
+    await loadWeekFromSupabase();
+
+    setupRealtime();
+
+    console.log(
+        currentUser
+            ? "👤 Utente autenticato"
+            : "👀 Modalità visualizzazione pubblica"
+    );
+}
+
+
+init();
+```

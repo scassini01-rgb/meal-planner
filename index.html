@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Meal Planner</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;600;700&family=DM+Mono:wght@300;400;500&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Font Awesome -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <main class="planner">
+
+        <header class="page-header">
+
+            <h1>Meal Planner</h1>
+
+            <div class="title-decoration" aria-hidden="true">
+                <span></span>
+                <i class="fa-solid fa-heart"></i>
+                <span></span>
+            </div>
+
+        </header>
+
+
+        <!-- =========================
+             SETTIMANA
+        ========================== -->
+
+        <section class="meal-grid">
+
+            <!-- LUNEDÌ -->
+            <article class="day">
+                <header class="day-header">Lunedì</header>
+
+                <div class="meal lunch" data-day="lunedi" data-meal="pranzo">
+                    <span class="meal-label">Pranzo</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+
+                <div class="meal dinner" data-day="lunedi" data-meal="cena">
+                    <span class="meal-label">Cena</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+            </article>
+
+
+            <!-- MARTEDÌ -->
+            <article class="day">
+                <header class="day-header">Martedì</header>
+
+                <div class="meal lunch" data-day="martedi" data-meal="pranzo">
+                    <span class="meal-label">Pranzo</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+
+                <div class="meal dinner" data-day="martedi" data-meal="cena">
+                    <span class="meal-label">Cena</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+            </article>
+
+
+            <!-- MERCOLEDÌ -->
+            <article class="day">
+                <header class="day-header">Mercoledì</header>
+
+                <div class="meal lunch" data-day="mercoledi" data-meal="pranzo">
+                    <span class="meal-label">Pranzo</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+
+                <div class="meal dinner" data-day="mercoledi" data-meal="cena">
+                    <span class="meal-label">Cena</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+            </article>
+
+
+            <!-- GIOVEDÌ -->
+            <article class="day">
+                <header class="day-header">Giovedì</header>
+
+                <div class="meal lunch" data-day="giovedi" data-meal="pranzo">
+                    <span class="meal-label">Pranzo</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+
+                <div class="meal dinner" data-day="giovedi" data-meal="cena">
+                    <span class="meal-label">Cena</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+            </article>
+
+
+            <!-- VENERDÌ -->
+            <article class="day">
+                <header class="day-header">Venerdì</header>
+
+                <div class="meal lunch" data-day="venerdi" data-meal="pranzo">
+                    <span class="meal-label">Pranzo</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+
+                <div class="meal dinner" data-day="venerdi" data-meal="cena">
+                    <span class="meal-label">Cena</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+            </article>
+
+
+            <!-- SABATO -->
+            <article class="day">
+                <header class="day-header">Sabato</header>
+
+                <div class="meal lunch" data-day="sabato" data-meal="pranzo">
+                    <span class="meal-label">Pranzo</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+
+                <div class="meal dinner" data-day="sabato" data-meal="cena">
+                    <span class="meal-label">Cena</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+            </article>
+
+
+            <!-- DOMENICA -->
+            <article class="day">
+                <header class="day-header">Domenica</header>
+
+                <div class="meal lunch" data-day="domenica" data-meal="pranzo">
+                    <span class="meal-label">Pranzo</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+
+                <div class="meal dinner" data-day="domenica" data-meal="cena">
+                    <span class="meal-label">Cena</span>
+
+                    <div class="meal-content">
+                        <span class="empty-meal">+</span>
+                    </div>
+                </div>
+            </article>
+
+        </section>
+
+
+        <!-- =========================
+             LISTA DELLA SPESA
+        ========================== -->
+
+        <section class="shopping-list-section">
+
+            <div class="shopping-heading">
+
+                <div class="shopping-title">
+
+                    <span class="shopping-icon">
+                        <i class="fa-solid fa-cart-shopping"></i>
+                    </span>
+
+                    <h2>Lista della spesa</h2>
+
+                </div>
+
+                <span
+                    class="shopping-count"
+                    id="shoppingCount"
+                >
+                    0 ingredienti
+                </span>
+
+            </div>
+
+            <div
+                class="shopping-list"
+                id="shoppingList"
+            ></div>
+
+        </section>
+
+    </main>
+
+
+    <!-- =========================
+         MODAL MODIFICA PASTO
+    ========================== -->
+
+    <div
+        class="modal-overlay"
+        id="mealModal"
+    >
+
+        <div class="modal">
+
+            <button
+                class="modal-close"
+                id="closeModal"
+                aria-label="Chiudi"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <h2 id="modalTitle">+</h2>
+
+            <p class="modal-subtitle">
+                cosa e quanto?
+            </p>
+
+            <textarea
+                id="mealInput"
+                placeholder="..."
+                rows="3"
+            ></textarea>
+
+
+            <p class="modal-subtitle">
+                Mangiamo...
+            </p>
+
+            <div class="meal-options">
+
+                <button
+                    type="button"
+                    class="meal-option"
+                    data-type="alone"
+                >
+                    <i class="fa-regular fa-heart"></i>
+                    <span>Da soli</span>
+                </button>
+
+                <button
+                    type="button"
+                    class="meal-option"
+                    data-type="together"
+                >
+                    <i class="fa-solid fa-heart"></i>
+                    <span>Insieme</span>
+                </button>
+
+            </div>
+            
+
+            <div class="quick-ingredients">
+
+            <div class="quick-ingredients-header">
+                <span>Ingredienti</span>
+
+                <button
+                    type="button"
+                    id="addQuickIngredient"
+                    aria-label="Aggiungi ingrediente"
+                >
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+
+            <div
+                class="quick-ingredients-list"
+                id="quickIngredientsList"
+            ></div>
+
+        </div>
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="delete-button"
+                    id="deleteMeal"
+                >
+                    Elimina
+                </button>
+
+                <button
+                    type="button"
+                    class="save-button"
+                    id="saveMeal"
+                >
+                    Salva
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         MODAL INGREDIENTI
+    ========================== -->
+
+    <div
+        class="modal-overlay"
+        id="ingredientsModal"
+    >
+
+        <div class="modal ingredients-modal">
+
+            <button
+                class="modal-close"
+                id="closeIngredientsModal"
+                aria-label="Chiudi"
+            >
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <p class="modal-kicker">
+                ingredienti
+            </p>
+
+            <h2 class="ingredients-title">
+                Ingredienti
+            </h2>
+
+            <p
+                class="ingredients-meal-name"
+                id="ingredientsMealName"
+            ></p>
+
+
+            <div
+                class="ingredients-list"
+                id="ingredientsList"
+            ></div>
+
+
+            <button
+                type="button"
+                class="add-ingredient-button"
+                id="addIngredient"
+            >
+                <i class="fa-solid fa-plus"></i>
+                Aggiungi ingrediente
+            </button>
+
+
+            <div class="modal-actions ingredients-actions">
+
+                <button
+                    type="button"
+                    class="save-button"
+                    id="saveIngredients"
+                >
+                    Salva
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script src="script.js"></script>
+
+</body>
+
+</html>
